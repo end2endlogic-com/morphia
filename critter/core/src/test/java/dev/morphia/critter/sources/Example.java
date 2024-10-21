@@ -4,14 +4,30 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.mongodb.client.model.CollationCaseFirst;
+
 import dev.morphia.annotations.AlsoLoad;
+import dev.morphia.annotations.Collation;
 import dev.morphia.annotations.Entity;
+import dev.morphia.annotations.EntityListeners;
+import dev.morphia.annotations.Field;
+import dev.morphia.annotations.Id;
+import dev.morphia.annotations.Index;
+import dev.morphia.annotations.IndexOptions;
+import dev.morphia.annotations.Indexes;
 import dev.morphia.annotations.Property;
 import dev.morphia.annotations.Reference;
 import dev.morphia.annotations.Transient;
+import dev.morphia.mapping.lifecycle.EntityListenerAdapter;
 
-@Entity
+import org.bson.types.ObjectId;
+
+@Entity("examples")
+@EntityListeners(EntityListenerAdapter.class)
+@Indexes(@Index(fields = @Field(value = "name", weight = 42), options = @IndexOptions(partialFilter = "partial filter", collation = @Collation(caseFirst = CollationCaseFirst.LOWER))))
 public class Example {
+    @Id
+    private ObjectId id;
     @Property(value = "myName")
     @AlsoLoad({ "name1", "name2" })
     private String name;
@@ -21,11 +37,14 @@ public class Example {
     private final int[] temp = new int[0];
 
     private Map<String, Example> map;
+
     private List<Map<String, Example>> list;
+
     private Set<Map<String, Example>> set;
 
     @Reference(idOnly = true)
     private int age = 21;
+
     @Property
     private Long salary = 2L;
 

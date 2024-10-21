@@ -1,17 +1,33 @@
 package dev.morphia.critter.parser.gizmo
 
-import dev.morphia.critter.parser.CritterGizmoGenerator
-import dev.morphia.critter.parser.GeneratorTest
-import dev.morphia.critter.parser.java.CritterParser.critterClassLoader
+import com.mongodb.client.model.CollationCaseFirst.LOWER
+import dev.morphia.annotations.Entity
+import dev.morphia.annotations.EntityListeners
+import dev.morphia.annotations.Indexes
+import dev.morphia.annotations.internal.CollationBuilder.collationBuilder
+import dev.morphia.annotations.internal.EntityBuilder.entityBuilder
+import dev.morphia.annotations.internal.EntityListenersBuilder.entityListenersBuilder
+import dev.morphia.annotations.internal.FieldBuilder.fieldBuilder
+import dev.morphia.annotations.internal.IndexBuilder.indexBuilder
+import dev.morphia.annotations.internal.IndexOptionsBuilder.indexOptionsBuilder
+import dev.morphia.annotations.internal.IndexesBuilder.indexesBuilder
+import dev.morphia.critter.Critter.Companion.critterClassLoader
+import dev.morphia.critter.parser.Generators.mapper
+import dev.morphia.critter.parser.gizmo.CritterGizmoGenerator as generator
 import dev.morphia.critter.sources.Example
+import dev.morphia.mapping.codec.pojo.EntityModel
 import dev.morphia.mapping.codec.pojo.PropertyModel
 import dev.morphia.mapping.codec.pojo.TypeData
+import dev.morphia.mapping.lifecycle.EntityListenerAdapter
 import io.quarkus.gizmo.ClassCreator
 import io.quarkus.gizmo.MethodDescriptor
+import io.quarkus.gizmo.MethodDescriptor.ofMethod
 import java.lang.reflect.Modifier
 import kotlin.reflect.KClass
 import org.objectweb.asm.Type
+import org.objectweb.asm.tree.AnnotationNode
 import org.testng.Assert.assertEquals
+import org.testng.Assert.assertFalse
 import org.testng.Assert.assertNotNull
 import org.testng.Assert.assertTrue
 import org.testng.Assert.fail
@@ -104,8 +120,36 @@ class TestGizmoGeneration {
     }
 
     @Test
+    fun testAnnotationBuilding() {
+        val index = AnnotationNode("Ldev/morphia/annotations/Index;")
+        val field = AnnotationNode("Ldev/morphia/annotations/Field;")
+        //        field.values = listOf("value", "name")
+        index.values = listOf("fields", listOf(field))
+        ClassCreator.builder()
+            .className("critter.AnnotationTest")
+            .superClass(EntityModel::class.java)
+            .classOutput { name, data -> critterClassLoader.register(name.replace('/', '.'), data) }
+            .build()
+            .use {
+                val creator = it.getMethodCreator("test", Void::class.java)
+                val annotationMethod =
+                    ofMethod(
+                        EntityModel::class.java.name,
+                        "annotation",
+                        EntityModel::class.java.name,
+                        Annotation::class.java
+                    )
+
+                creator.invokeVirtualMethod(
+                    annotationMethod,
+                    creator.`this`,
+                    index.annotationBuilder(creator)
+                )
+            }
+    }
+
+    @Test
     fun testGizmo() {
-        val generator = CritterGizmoGenerator(critterClassLoader, GeneratorTest.mapper)
         generator.generate(Example::class.java)
         critterClassLoader.loadClass("dev.morphia.critter.sources.__morphia.example.AgeModel")
         val nameModel =
@@ -124,10 +168,58 @@ class TestGizmoGeneration {
             .loadClass("dev.morphia.critter.sources.__morphia.example.SalaryAccessor")
             .getConstructor()
             .newInstance()
+        val loadClass =
+            critterClassLoader.loadClass(
+                "dev.morphia.critter.sources.__morphia.example.ExampleEntityModel"
+            )
+        val constructors = loadClass.constructors
+        val model: EntityModel = constructors[0].newInstance(mapper) as EntityModel
+        validate(model)
     }
 
-    private fun invokeAll(type: Class<*>, nameModel: Class<*>) {
-        val instance = nameModel.constructors[0].newInstance(null)
+    private fun validate(model: EntityModel) {
+        val annotation = model.getAnnotation(EntityListeners::class.java)
+        assertEquals(
+            annotation,
+            entityListenersBuilder().value(EntityListenerAdapter::class.java).build()
+        )
+
+        assertEquals(
+            model.getAnnotation(Entity::class.java),
+            entityBuilder().value("examples").build()
+        )
+
+        assertEquals(
+            model.getAnnotation<Indexes>(Indexes::class.java),
+            indexesBuilder()
+                .value(
+                    indexBuilder()
+                        .fields(fieldBuilder().value("name").weight(42).build())
+                        .options(
+                            indexOptionsBuilder()
+                                .partialFilter("partial filter")
+                                .collation(collationBuilder().caseFirst(LOWER).build())
+                                .build()
+                        )
+                        .build()
+                )
+                .build()
+        )
+
+        assertEquals(model.collectionName(), "examples")
+        assertEquals(model.discriminator(), "Example")
+        assertEquals(model.discriminatorKey(), "_t")
+        assertEquals(model.type.name, Example::class.java.name)
+        assertFalse(model.properties.isEmpty(), "Should have properties")
+        assertNotNull(model.idProperty, "Should have an ID property")
+        assertFalse(model.isAbstract(), "Should not be abstract")
+        assertFalse(model.isInterface(), "Should not be an interface")
+        assertTrue(model.useDiscriminator(), "Should use the discriminator")
+        assertTrue(model.classHierarchy().isEmpty(), "Should not have a class hierarchy")
+    }
+
+    private fun invokeAll(type: Class<*>, klass: Class<*>) {
+        val instance = klass.constructors[0].newInstance(null)
         val results =
             type.declaredMethods
                 .filter {
@@ -139,7 +231,7 @@ class TestGizmoGeneration {
                 .sortedBy { it.name }
                 .map { method ->
                     try {
-                        nameModel.getDeclaredMethod(method.name, *method.parameterTypes)
+                        klass.getDeclaredMethod(method.name, *method.parameterTypes)
                         null
                     } catch (e: Exception) {
                         e.message
