@@ -20,8 +20,10 @@ recipeList:
   - org.openrewrite.maven.ChangeDependencyGroupIdAndArtifactId:
       oldGroupId: dev.morphia.morphia
       oldArtifactId: morphia-core
-      newVersion: 3.0.0
-      overrideManagedVersion: false
+      #newVersion: 3.0.0
+      newVersion: 3.0.0-beta.40
+      #overrideManagedVersion: false
+      overrideManagedVersion: true
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: dev.morphia.geo.GeoJson
       newFullyQualifiedTypeName: com.mongodb.client.model.geojson.GeoJson
