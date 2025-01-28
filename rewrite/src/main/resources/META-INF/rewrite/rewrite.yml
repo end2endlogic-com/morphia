@@ -1,0 +1,94 @@
+type: specs.openrewrite.org/v1beta/recipe
+name: dev.morphia.UpgradeToMorphia30
+displayName: Upgrade to Morphia 3.0
+description: Adopt new dependencies and breaking changes in moving to Morphia 3.
+recipeList:
+  - dev.morphia.rewrite.recipes.UnwrapFieldExpressions
+  - dev.morphia.rewrite.recipes.PipelineRewrite
+  - dev.morphia.rewrite.recipes.CreateDatastoreMigration
+  - dev.morphia.rewrite.recipes.MorphiaConfigMigration
+  - dev.morphia.rewrite.recipes.RegexPatternMerge
+  - dev.morphia.rewrite.recipes.UpdateExecute
+  - dev.morphia.rewrite.recipes.LogicalFilterAdd
+  - org.openrewrite.java.RemoveAnnotation:
+      annotationPattern: '@dev.morphia.annotations.Embedded(..)'
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: dev.morphia.mapping.MapperOptions
+      newFullyQualifiedTypeName: dev.morphia.config.MorphiaConfig
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: dev.morphia.EntityInterceptor
+      newFullyQualifiedTypeName: dev.morphia.EntityListener
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: dev.morphia.DatastoreImpl
+      newFullyQualifiedTypeName: dev.morphia.MorphiaDatastore
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: dev.morphia.utils.IndexDirection
+      newFullyQualifiedTypeName: dev.morphia.mapping.IndexDirection
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: dev.morphia.utils.IndexType
+      newFullyQualifiedTypeName: dev.morphia.mapping.IndexType
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: dev.morphia.mapping.MapperOptions.PropertyDiscovery
+      newFullyQualifiedTypeName: dev.morphia.mapping.PropertyDiscovery
+  - org.openrewrite.java.RemoveMethodInvocations:
+      methodPattern: dev.morphia.Datastore enableDocumentValidation(..)
+  - org.openrewrite.java.RemoveMethodInvocations:
+      methodPattern: dev.morphia.MorphiaDatastore enableDocumentValidation(..)
+  - org.openrewrite.java.RemoveMethodInvocations:
+      methodPattern: dev.morphia.Datastore enableCaps(..)
+  - org.openrewrite.java.RemoveMethodInvocations:
+      methodPattern: dev.morphia.MorphiaDatastore enableCaps(..)
+  - org.openrewrite.java.RemoveMethodInvocations:
+      methodPattern: dev.morphia.Datastore ensureIndexes(..)
+  - org.openrewrite.java.RemoveMethodInvocations:
+      methodPattern: dev.morphia.MorphiaDatastore ensureIndexes(..)
+  - dev.morphia.rewrite.recipes.RenameMethod:
+      methodPatterns:
+        - dev.morphia.aggregation.expressions.Expressions of(..) document
+  - org.openrewrite.maven.UpgradeDependencyVersion:
+      groupId: dev.morphia.morphia
+      artifactId: morphia-core
+      newVersion: 3.0.0-SNAPSHOT
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: dev.morphia.InternalOnly
+displayName: Recipe definitions specifically for testing in morphia-upgrade-testing.  not for external use.
+recipeList:
+  - org.openrewrite.DeleteSourceFiles:
+      filePattern: src/test/java/dev/morphia/test/TestLegacyUpdate.java
+  - org.openrewrite.DeleteSourceFiles:
+      filePattern: src/test/java/dev/morphia/test/query/legacy/TestLegacyQuery.java
+  - org.openrewrite.DeleteSourceFiles:
+      filePattern: src/test/java/dev/morphia/test/BuildConfigTest.java
+  - org.openrewrite.DeleteSourceFiles:
+      filePattern: src/test/java/dev/morphia/test/models/Keys.java
+  - org.openrewrite.DeleteSourceFiles:
+      filePattern: src/test/java/dev/morphia/test/MorphiaVersionTest.java
+  - org.openrewrite.DeleteSourceFiles:
+      filePattern: src/test/java/dev/morphia/test/mapping/experimental/MorphiaReferenceTest.java
+  - dev.morphia.rewrite.recipes.internal.RemoveMethodDeclaration:
+      methodPatterns:
+        - dev.morphia.test.TestUpdateOperations testUpsert()
+        - dev.morphia.test.TestUpdateOperations doUpdates(..)
+        - dev.morphia.test.mapping.TestPropertyModel arrayFieldMapping()
+        - dev.morphia.test.mapping.TestPropertyModel collectionFieldMapping()
+        - dev.morphia.test.mapping.TestPropertyModel nestedCollectionsMapping()
+        - dev.morphia.test.mapping.TestPropertyModel nestedGenerics()
+        - dev.morphia.test.mapping.TestReferences testFetchKeys()
+        - dev.morphia.test.mapping.codec.TestDocumentWriter testAnd()
+        - dev.morphia.test.mapping.codec.TestDocumentWriter testOr()
+        - dev.morphia.test.query.TestQuery testCriteriaContainers()
+        - dev.morphia.test.query.TestQuery check()
+        - dev.morphia.test.query.TestQuery testKeys()
+        - dev.morphia.test.query.TestQuery testKeyList()
+        - dev.morphia.test.query.TestQuery testFetchKeys()
+        - dev.morphia.test.query.TestQuery check(dev.morphia.query.Query)
+        - dev.morphia.test.query.TestQueriesOnReferences testWithKeyQuery()
+  - dev.morphia.rewrite.recipes.RenameMethod:
+      methodPatterns:
+        - dev.morphia.mapping.codec.pojo.EntityModel getCollectionName() collectionName
+        - dev.morphia.mapping.codec.pojo.EntityModel getDiscriminator() discriminator
+        - dev.morphia.mapping.codec.pojo.EntityModel getDiscriminatorKey() discriminatorKey
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: dev.morphia.aggregation.codecs.ExpressionHelper
+      newFullyQualifiedTypeName: dev.morphia.mapping.codec.CodecHelper

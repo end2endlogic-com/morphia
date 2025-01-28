@@ -42,15 +42,15 @@
     </repositories>
 
     <properties>
-        <kotlin.version>2.0.21</kotlin.version>
+        <kotlin.version>2.1.0</kotlin.version>
         <awaitility.version>1.7.0</awaitility.version>
-        <driver.version>5.2.0</driver.version>
+        <driver.version>5.2.1</driver.version>
         <driver.minor.version>5.2</driver.minor.version>
-        <jackson.version>2.18.0</jackson.version>
+        <jackson.version>2.18.2</jackson.version>
         <json.assert.version>1.5.3</json.assert.version>
         <javapoet.version>1.13.0</javapoet.version>
         <kotlinpoet.version>1.19.1</kotlinpoet.version>
-        <logback.version>1.5.9</logback.version>
+        <logback.version>1.5.16</logback.version>
         <maven.version>3.9.9</maven.version>
         <revapi.maven.plugin.version>0.15.0</revapi.maven.plugin.version>
         <revapi.java.version>0.28.1</revapi.java.version>
@@ -66,7 +66,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <kotlin.compiler.jvmTarget>17</kotlin.compiler.jvmTarget>
         <asm.version>9.7.1</asm.version>
-        <ksp.version>2.0.21-1.0.25</ksp.version>
+        <ksp.version>2.1.0-1.0.29</ksp.version>
     </properties>
 
     <build>
@@ -112,6 +112,13 @@
                         <analysisConfigurationFiles>
                             <analysisConfigurationFile>${maven.multiModuleProjectDirectory}/config/revapi.json</analysisConfigurationFile>
                         </analysisConfigurationFiles>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <configuration>
+                        <forkCount>1C</forkCount>
                     </configuration>
                 </plugin>
             </plugins>
@@ -187,7 +194,7 @@
             <dependency>
                 <groupId>io.smallrye.config</groupId>
                 <artifactId>smallrye-config</artifactId>
-                <version>3.9.1</version>
+                <version>3.10.2</version>
             </dependency>
 
             <dependency>
@@ -203,7 +210,7 @@
             <dependency>
                 <groupId>org.testcontainers</groupId>
                 <artifactId>mongodb</artifactId>
-                <version>1.20.2</version>
+                <version>1.20.4</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
@@ -232,7 +239,7 @@
             <dependency>
                 <groupId>org.semver4j</groupId>
                 <artifactId>semver4j</artifactId>
-                <version>5.4.0</version>
+                <version>5.5.0</version>
             </dependency>
             <dependency>
                 <groupId>org.zeroturnaround</groupId>
@@ -261,7 +268,7 @@
             <dependency>
                 <groupId>org.kohsuke</groupId>
                 <artifactId>github-api</artifactId>
-                <version>1.325</version>
+                <version>1.326</version>
             </dependency>
             <dependency>
                 <groupId>org.ow2.asm</groupId>
@@ -276,7 +283,7 @@
             <dependency>
                 <groupId>org.jsoup</groupId>
                 <artifactId>jsoup</artifactId>
-                <version>1.18.1</version>
+                <version>1.18.3</version>
             </dependency>
             <dependency>
                 <groupId>org.asciidoctor</groupId>
@@ -286,29 +293,29 @@
             <dependency>
                 <groupId>org.jboss.forge.roaster</groupId>
                 <artifactId>roaster-api</artifactId>
-                <version>2.29.0.Final</version>
+                <version>2.30.1.Final</version>
             </dependency>
             <dependency>
                 <groupId>org.jboss.forge.roaster</groupId>
                 <artifactId>roaster-jdt</artifactId>
-                <version>2.29.0.Final</version>
+                <version>2.30.1.Final</version>
                 <scope>runtime</scope>
             </dependency>
             <dependency>
                 <groupId>com.github.spotbugs</groupId>
                 <artifactId>spotbugs-annotations</artifactId>
-                <version>4.8.6</version>
+                <version>4.9.0</version>
                 <scope>compile</scope>
             </dependency>
             <dependency>
                 <groupId>net.bytebuddy</groupId>
                 <artifactId>byte-buddy</artifactId>
-                <version>1.15.3</version>
+                <version>1.15.11</version>
             </dependency>
             <dependency>
                 <groupId>io.github.classgraph</groupId>
                 <artifactId>classgraph</artifactId>
-                <version>4.8.177</version>
+                <version>4.8.179</version>
             </dependency>
             <dependency>
                 <groupId>com.google.devtools.ksp</groupId>
@@ -362,19 +369,6 @@
                 <module>critter</module>
             </modules>
         </profile>
-
-        <profile>
-            <id>rewrite</id>
-            <activation>
-                <activeByDefault>true</activeByDefault>
-                <property>
-                    <name>rewrite</name>
-                </property>
-            </activation>
-            <modules>
-                <module>rewrite</module>
-            </modules>
-        </profile>
     </profiles>
 
     <modules>
@@ -385,5 +379,6 @@
         <module>kotlin</module>
         <module>validation</module>
         <module>examples</module>
+        <module>rewrite</module>
     </modules>
 </project>

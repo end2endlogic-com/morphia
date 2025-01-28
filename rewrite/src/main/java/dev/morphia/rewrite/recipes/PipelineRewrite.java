@@ -1,11 +1,14 @@
 package dev.morphia.rewrite.recipes;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.StringJoiner;
+
+import dev.morphia.aggregation.stages.Match;
+import dev.morphia.query.filters.Filter;
 
 import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.Nullable;
+import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
@@ -14,13 +17,16 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.tree.Expression;
-import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.J.MethodInvocation;
+import org.openrewrite.java.tree.MethodCall;
+import org.openrewrite.java.tree.Space;
+
+import static dev.morphia.rewrite.recipes.RegexPatternMerge.findInvocation;
+import static java.util.Collections.emptyList;
 
 public class PipelineRewrite extends Recipe {
-
     static final String AGGREGATION = "dev.morphia.aggregation.Aggregation";
-    static final MethodMatcher pipeline = new MethodMatcher(PipelineRewrite.AGGREGATION + " pipeline(..)");
+
     static final List<MethodMatcher> matchers = List.of(
             new MethodMatcher(AGGREGATION + " addFields(dev.morphia.aggregation.stages.AddFields)"),
             new MethodMatcher(AGGREGATION + " autoBucket(dev.morphia.aggregation.stages.AutoBucket)"),
@@ -40,7 +46,7 @@ public class PipelineRewrite extends Recipe {
             new MethodMatcher(AGGREGATION + " indexStats(dev.morphia.aggregation.stages.IndexStats)"),
             new MethodMatcher(AGGREGATION + " limit(long)"),
             new MethodMatcher(AGGREGATION + " lookup(dev.morphia.aggregation.stages.Lookup)"),
-            new MethodMatcher(AGGREGATION + " match(dev.morphia.aggregation.stages.Match)"),
+            new MethodMatcher(AGGREGATION + " match(dev.morphia.query.filters.Filter...)"),
             new MethodMatcher(AGGREGATION + " planCacheStats()"),
             new MethodMatcher(AGGREGATION + " project(dev.morphia.aggregation.stages.Projection)"),
             new MethodMatcher(AGGREGATION + " redact(dev.morphia.aggregation.stages.Redact)"),
@@ -56,71 +62,88 @@ public class PipelineRewrite extends Recipe {
             new MethodMatcher(AGGREGATION + " unset(dev.morphia.aggregation.stages.Unset)"),
             new MethodMatcher(AGGREGATION + " unwind(dev.morphia.aggregation.stages.Unwind)"));
 
+    private static final MethodMatcher MEGA_MATCHER = new MethodMatcher(
+            AGGREGATION + " addFields(dev.morphia.aggregation.stages.AddFields)") {
+        @Override
+        public boolean matches(@Nullable MethodCall methodCall) {
+            return matchers.stream().anyMatch(matcher -> matcher.matches(methodCall));
+        }
+    };
+
+    private static final JavaTemplate MATCH = (JavaTemplate.builder("Match.match()"))
+            .javaParser(JavaParser.fromJavaVersion()
+                    .classpath("morphia-core"))
+            .imports(Filter.class.getName())
+            .imports(Match.class.getName())
+            .build();
+
     @Override
-    public String getDisplayName() {
+    public @NotNull String getDisplayName() {
         return "Aggregation pipeline rewrite";
     }
 
     @Override
-    public String getDescription() {
+    public @NotNull String getDescription() {
         return "Rewrites an aggregation from using stage-named methods to using pipeline(Stage...).";
     }
 
     @Override
-    public TreeVisitor<?, ExecutionContext> getVisitor() {
+    public @NotNull TreeVisitor<?, ExecutionContext> getVisitor() {
 
-        return new JavaIsoVisitor<ExecutionContext>() {
-
+        return new JavaIsoVisitor<>() {
             @Override
-            public MethodInvocation visitMethodInvocation(MethodInvocation methodInvocation, @NotNull ExecutionContext context) {
-                return working(methodInvocation, context);
-                //                return notWorking(methodInvocation, context);
-            }
-
-            public MethodInvocation working(MethodInvocation methodInvocation, @NotNull ExecutionContext context) {
-                if (matchers.stream().anyMatch(matcher -> matcher.matches(methodInvocation))) {
-                    return super.visitMethodInvocation(methodInvocation
-                            .withName(methodInvocation.getName().withSimpleName("pipeline")),
-                            context);
-                } else {
-                    return super.visitMethodInvocation(methodInvocation, context);
-                }
-            }
-
-            public MethodInvocation notWorking(MethodInvocation methodInvocation, @NotNull ExecutionContext context) {
-                if (matchers.stream().anyMatch(matcher -> matcher.matches(methodInvocation))) {
-                    MethodInvocation mi = methodInvocation;
+            public @NotNull MethodInvocation visitMethodInvocation(@NotNull MethodInvocation methodInvocation,
+                    @NotNull ExecutionContext context) {
+                MethodInvocation pipeline = findInvocation(methodInvocation, "pipeline");
+                if (MEGA_MATCHER.matches(methodInvocation)) {
+                    Expression updated = methodInvocation;
+                    MethodInvocation invocation = (MethodInvocation) updated;
                     List<Expression> arguments = new ArrayList<>();
-                    Expression expression = mi;
-                    while (expression instanceof MethodInvocation invocation) {
-                        arguments.add(invocation.getArguments().get(0));
-                        mi = invocation;
-                        expression = mi.getSelect();
-                    }
-                    Collections.reverse(arguments);
+                    while (MEGA_MATCHER.matches(updated)/* && MEGA_MATCHER.matches(updated.getSelect()) */) {
+                        invocation = (MethodInvocation) updated;
+                        collectArguments(arguments, invocation);
 
-                    return applyTemplate(expression, arguments, expression);
+                        updated = invocation.getSelect();
+
+                    }
+                    Space after = methodInvocation.getPadding().getSelect().getAfter();
+                    Space space = Space.build(getIndent(after), emptyList());
+                    arguments = arguments.stream()
+                            .map(a -> (Expression) a.withPrefix(space))
+                            .toList();
+
+                    invocation = invocation.withName(methodInvocation.getName().withSimpleName("pipeline"))
+                            .withArguments(arguments);
+
+                    after = invocation.getPadding().getSelect().getAfter();
+
+                    return maybeAutoFormat(methodInvocation, invocation
+                            .withPrefix(Space.build("\n", emptyList())), context);
                 } else {
                     return super.visitMethodInvocation(methodInvocation, context);
-
                 }
             }
 
-            private J.MethodInvocation applyTemplate(Expression expression, List<Expression> arguments, Expression target) {
-                String code = buildTemplate(expression, arguments);
-                return JavaTemplate.builder(code)
-                        .contextSensitive()
-                        .javaParser(JavaParser.fromJavaVersion())
-                        .build()
-                        .apply(getCursor(), target.getCoordinates().replace());
+            private void collectArguments(List<Expression> args, MethodInvocation invocation) {
+                if (invocation.getSimpleName().equals("match")) {
+                    maybeAddImport(Match.class.getName(), "match", false);
+                    MethodInvocation applied = MATCH.apply(new Cursor(getCursor(), invocation),
+                            invocation.getCoordinates().replaceMethod());
+                    args.add(0, applied.withArguments(invocation.getArguments()).withSelect(null));
+                } else {
+                    args.addAll(0, invocation.getArguments());
+                }
             }
 
-            private String buildTemplate(Expression toReplace, List<Expression> arguments) {
-                StringJoiner joiner = new StringJoiner(",\n\t", toReplace + ".pipeline(", ")");
-                arguments.forEach(argument -> joiner.add(argument.toString()));
-
-                return joiner.toString();
-            }
         };
     }
+
+    public static String getIndent(Space after) {
+        var whitespace = after.getWhitespace();
+        if (!whitespace.startsWith("\n")) {
+            whitespace = "\n" + whitespace;
+        }
+        return whitespace + "    ";
+    }
+
 }

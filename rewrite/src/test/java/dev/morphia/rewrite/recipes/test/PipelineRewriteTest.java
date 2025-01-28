@@ -18,60 +18,161 @@ public class PipelineRewriteTest extends MorphiaRewriteTest {
 
     @Test
     void unwrapStageMethods() {
-        rewriteRun(
+        rewriteRun(java(
                 //language=java
-                java(
-                        """
-                                import dev.morphia.aggregation.expressions.ComparisonExpressions;
+                """
+                        import dev.morphia.aggregation.expressions.ComparisonExpressions;
 
-                                import static dev.morphia.aggregation.expressions.AccumulatorExpressions.sum;
-                                import static dev.morphia.aggregation.stages.Group.group;
-                                import static dev.morphia.aggregation.stages.Group.id;
-                                import static dev.morphia.aggregation.stages.Projection.project;
-                                import static dev.morphia.aggregation.expressions.Expressions.field;
-                                import static dev.morphia.aggregation.expressions.Expressions.value;
-                                import static dev.morphia.aggregation.stages.Sort.sort;
+                        import static dev.morphia.aggregation.expressions.AccumulatorExpressions.sum;
+                        import static dev.morphia.aggregation.stages.Group.group;
+                        import static dev.morphia.aggregation.stages.Group.id;
+                        import static dev.morphia.aggregation.stages.Projection.project;
+                        import static dev.morphia.aggregation.expressions.Expressions.field;
+                        import static dev.morphia.aggregation.expressions.Expressions.value;
+                        import static dev.morphia.aggregation.stages.Sort.sort;
+                        import static dev.morphia.query.filters.Filters.eq;
 
-                                import dev.morphia.aggregation.Aggregation;
-                                import org.bson.Document;
+                        import dev.morphia.aggregation.Aggregation;
+                        import dev.morphia.query.MorphiaCursor;
+                        import org.bson.Document;
 
-                                public class UnwrapTest {
-                                    public void update(Aggregation<?> aggregation) {
+                        public class UnwrapTest {
+                            public MorphiaCursor<Document> update(Aggregation<?> aggregation) {
+                                return aggregation
+                                    .match(eq("author", "Sanderson"))
+                                    .group(group(id("author")).field("count", sum(value(1))))
+                                    .sort(sort().ascending("1"))
+                                    .sort(sort().ascending("2"))
+                                    .sort(sort().ascending("3"))
+                                    .sort(sort().ascending("4"))
+                                    .execute(Document.class);
+                            }
+                        }""",
+                //language=java
+                """
+                        import dev.morphia.aggregation.expressions.ComparisonExpressions;
+
+                        import static dev.morphia.aggregation.expressions.AccumulatorExpressions.sum;
+                        import static dev.morphia.aggregation.stages.Group.group;
+                        import static dev.morphia.aggregation.stages.Group.id;
+                        import static dev.morphia.aggregation.stages.Match.match;
+                        import static dev.morphia.aggregation.stages.Projection.project;
+                        import static dev.morphia.aggregation.expressions.Expressions.field;
+                        import static dev.morphia.aggregation.expressions.Expressions.value;
+                        import static dev.morphia.aggregation.stages.Sort.sort;
+                        import static dev.morphia.query.filters.Filters.eq;
+
+                        import dev.morphia.aggregation.Aggregation;
+                        import dev.morphia.query.MorphiaCursor;
+                        import org.bson.Document;
+
+                        public class UnwrapTest {
+                            public MorphiaCursor<Document> update(Aggregation<?> aggregation) {
+                                return#
                                         aggregation
-                                            .group(group(id("author")).field("count", sum(value(1))))
-                                            .sort(sort().ascending("1"))
-                                            .sort(sort().ascending("2"))
-                                            .sort(sort().ascending("3"))
-                                            .sort(sort().ascending("4"))
-                                            .execute(Document.class);
-                                    }
-                                }
-                                """,
-                        """
-                                import dev.morphia.aggregation.expressions.ComparisonExpressions;
+                                                .pipeline(
+                                                        match(eq("author", "Sanderson")),
+                                                        group(id("author")).field("count", sum(value(1))),
+                                                        sort().ascending("1"),
+                                                        sort().ascending("2"),
+                                                        sort().ascending("3"),
+                                                        sort().ascending("4"))
+                                    .execute(Document.class);
+                            }
+                        }""".replace('#', ' ')));
+    }
 
-                                import static dev.morphia.aggregation.expressions.AccumulatorExpressions.sum;
-                                import static dev.morphia.aggregation.stages.Group.group;
-                                import static dev.morphia.aggregation.stages.Group.id;
-                                import static dev.morphia.aggregation.stages.Projection.project;
-                                import static dev.morphia.aggregation.expressions.Expressions.field;
-                                import static dev.morphia.aggregation.expressions.Expressions.value;
-                                import static dev.morphia.aggregation.stages.Sort.sort;
+    @Test
+    public void testWhitespace() {
+        rewriteRun(java(
+                //language=java
+                """
+                        import dev.morphia.aggregation.Aggregation;
 
-                                import dev.morphia.aggregation.Aggregation;
-                                import org.bson.Document;
+                        import static dev.morphia.aggregation.expressions.AccumulatorExpressions.top;
+                        import static dev.morphia.aggregation.expressions.ArrayExpressions.array;
+                        import static dev.morphia.aggregation.expressions.Expressions.field;
+                        import static dev.morphia.aggregation.stages.Group.group;
+                        import static dev.morphia.aggregation.stages.Group.id;
+                        import static dev.morphia.query.Sort.descending;
+                        import static dev.morphia.query.filters.Filters.eq;
 
-                                public class UnwrapTest {
-                                    public void update(Aggregation<?> aggregation) {
+                        public class UnwrapTest {
+                            Aggregation<?> aggregation;
+                            public Aggregation<?> testWhitespace() {
+                                return aggregation
+                                           .match(eq("gameId", "G1"))
+                                           .group(group(id(field("gameId")))
+                                                      .field("playerId", top(
+                                                          array(field("playerId"), field("score")),
+                                                          descending("score"))));
+                            }
+                        }
+                        """,
+                //language=java
+                """
+                        import dev.morphia.aggregation.Aggregation;
+
+                        import static dev.morphia.aggregation.expressions.AccumulatorExpressions.top;
+                        import static dev.morphia.aggregation.expressions.ArrayExpressions.array;
+                        import static dev.morphia.aggregation.expressions.Expressions.field;
+                        import static dev.morphia.aggregation.stages.Group.group;
+                        import static dev.morphia.aggregation.stages.Group.id;
+                        import static dev.morphia.aggregation.stages.Match.match;
+                        import static dev.morphia.query.Sort.descending;
+                        import static dev.morphia.query.filters.Filters.eq;
+
+                        public class UnwrapTest {
+                            Aggregation<?> aggregation;
+                            public Aggregation<?> testWhitespace() {
+                                return
                                         aggregation
-                                            .pipeline(group(id("author")).field("count", sum(value(1))))
-                                            .pipeline(sort().ascending("1"))
-                                            .pipeline(sort().ascending("2"))
-                                            .pipeline(sort().ascending("3"))
-                                            .pipeline(sort().ascending("4"))
-                                            .execute(Document.class);
-                                    }
-                                }
-                                """));
+                                                .pipeline(
+                                                        match(eq("gameId", "G1")),
+                                                        group(id(field("gameId")))
+                                                                .field("playerId", top(
+                                                                        array(field("playerId"), field("score")),
+                                                                        descending("score"))));
+                            }
+                        }"""));
+    }
+
+    @Test
+    public void testMatch() {
+        rewriteRun(java(
+                """
+                        import dev.morphia.Datastore;
+                        import dev.morphia.query.MorphiaCursor;
+                        import dev.morphia.query.filters.Filters;
+                        import org.bson.Document;
+
+                        public class UnwrapTest {
+                          public MorphiaCursor<Document> update(Datastore ds) {
+                              Object e2 = ds.aggregate(Object.class)
+                                      .match(Filters.eq("reference", "ec"))
+                                      .execute(Object.class)
+                                      .tryNext();
+                          }
+                        }
+                        """,
+                """
+                        import dev.morphia.Datastore;
+                        import dev.morphia.query.MorphiaCursor;
+                        import dev.morphia.query.filters.Filters;
+                        import org.bson.Document;
+
+                        import static dev.morphia.aggregation.stages.Match.match;
+
+                        public class UnwrapTest {
+                          public MorphiaCursor<Document> update(Datastore ds) {
+                              Object e2 =#
+                                              ds.aggregate(Object.class)
+                                                      .pipeline(
+                                                              match(Filters.eq("reference", "ec")))
+                                      .execute(Object.class)
+                                      .tryNext();
+                          }
+                        }
+                        """.replace('#', ' ')));
     }
 }

@@ -1,5 +1,7 @@
 package dev.morphia.aggregation;
 
+import java.util.List;
+
 import com.mongodb.client.model.geojson.Point;
 
 import dev.morphia.aggregation.expressions.impls.DocumentExpression;
@@ -57,9 +59,13 @@ public interface Aggregation<T> {
      */
     Aggregation<T> pipeline(Stage... stages);
 
+    default Aggregation<T> pipeline(List<Stage> stages) {
+        return pipeline(stages.toArray(new Stage[0]));
+    }
+
     /**
      * Execute the aggregation. This form and {@link #execute(AggregationOptions)} should be used for pipelines with $out and $merge
-     * that do no expect any results to be returned.
+     * that do not expect any results to be returned.
      *
      * @see #execute(AggregationOptions)
      */
