@@ -9,7 +9,7 @@
 
     <groupId>dev.morphia.morphia</groupId>
     <artifactId>morphia</artifactId>
-    <version>3.0.0-beta.40a</version>
+    <version>3.0.0-beta.40b</version>
     <packaging>pom</packaging>
 
     <name>Morphia</name>
@@ -23,6 +23,11 @@
     </scm>
 
     <repositories>
+        <repository>
+            <id>io.cloudrepo</id> <!-- Must Match the Unique Identifier in settings.xml -->
+            <name>OpenSource Repo</name>
+            <url>https://end2endlogic.mycloudrepo.io/repositories/end2endlogic-opensource-release</url>
+        </repository>
         <repository>
             <id>central</id>
             <name>Maven Central</name>
