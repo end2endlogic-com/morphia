@@ -8,7 +8,7 @@ To use Morphia using either build tool, you will need to update your build confi
 ----
 <dependencies>
     <dependency>
-        <groupId>dev.morphia.morphia</groupId>
+        <groupId>com.end2endlogic</groupId>
         <artifactId>morphia-core</artifactId>
         <version>{version}</version>
     </dependency>
@@ -35,7 +35,7 @@ Gradle users can use the following dependency declaration:
 [source,groovy,subs="verbatim,attributes"]
 ----
 dependencies {
-    compile 'dev.morphia.morphia:morphia-core:{version}'
+    compile 'com.end2endlogic:morphia-core:{version}'
 }
 ----
 

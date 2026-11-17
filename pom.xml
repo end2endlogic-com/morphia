@@ -7,44 +7,30 @@
         <version>44</version>
     </parent>
 
-    <groupId>dev.morphia.morphia</groupId>
+    <groupId>com.end2endlogic</groupId>
     <artifactId>morphia</artifactId>
-    <version>3.0.0-beta.40b</version>
+    <version>3.0.0</version>
     <packaging>pom</packaging>
 
     <name>Morphia</name>
-    <url>https://github.com/MorphiaOrg/morphia</url>
-    <description>MongoDB object-document mapper in Java based on https://github.com/mongodb/mongo-java-driver</description>
+    <url>https://github.com/end2endlogic-com/morphia</url>
+    <description>A Fork of dev.morphia which is a MongoDB object-document mapper in Java based on https://github.com/mongodb/mongo-java-driver</description>
 
     <scm>
-        <connection>scm:git:git@github.com:MorphiaOrg/morphia.git</connection>
-        <developerConnection>scm:git:git@github.com:MorphiaOrg/morphia.git</developerConnection>
-        <url>git@github.com:MorphiaOrg/morphia.git</url>
+        <connection>scm:git:git@github.com:end2endlogic/morphia.git</connection>
+        <developerConnection>scm:git:git@github.com:end2endlogic/morphia.git</developerConnection>
+        <url>git@github.com:end2endlogic/morphia.git</url>
     </scm>
 
-    <repositories>
-        <repository>
-            <id>io.cloudrepo</id> <!-- Must Match the Unique Identifier in settings.xml -->
-            <name>OpenSource Repo</name>
-            <url>https://end2endlogic.mycloudrepo.io/repositories/end2endlogic-opensource-release</url>
-        </repository>
-        <repository>
-            <id>central</id>
-            <name>Maven Central</name>
-            <layout>default</layout>
-            <url>https://repo1.maven.org/maven2</url>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository>
-        <repository>
-            <id>sonatype-snapshots</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-        </repository>
-    </repositories>
+    <developers>
+        <developer>
+            <name>Michael Ingardia</name>
+            <email>mingardia@end2endlogic.com</email>
+            <organization>End2EndLogic</organization>
+            <organizationUrl>https://www.end2endlogic.com</organizationUrl>
+        </developer>
+    </developers>
+
 
     <properties>
         <kotlin.version>2.0.20</kotlin.version>
@@ -145,13 +131,43 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>org.sonatype.central</groupId>
+                <artifactId>central-publishing-maven-plugin</artifactId>
+                <version>0.7.0</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <publishingServerId>central</publishingServerId>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-gpg-plugin</artifactId>
+                <version>3.0.1</version>
+                <executions>
+                    <execution>
+                        <id>sign-artifacts</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>sign</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <gpgArguments>
+                        <arg>--pinentry-mode</arg>
+                        <arg>loopback</arg>
+                    </gpgArguments>
+                    <passphraseServerId>gpg.passphrase</passphraseServerId>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>dev.morphia.morphia</groupId>
+                <groupId>com.end2endlogic</groupId>
                 <artifactId>morphia-core</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -391,11 +407,4 @@
         <module>validation</module>
         <module>examples</module>
     </modules>
-    <distributionManagement>
-        <repository>
-            <id>io.cloudrepo</id> <!-- Must Match the Unique Identifier in settings.xml -->
-            <name>OpenSource Repo</name>
-            <url>https://end2endlogic.mycloudrepo.io/repositories/end2endlogic-opensource-release</url>
-        </repository>
-    </distributionManagement>
 </project>

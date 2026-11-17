@@ -32,7 +32,7 @@ fun updatePackages(file: File) {
 
 fun updatePom() {
     ProcessExecutor()
-        .commandSplit("mvn -q versions:use-latest-releases versions:update-properties -Dincludes=dev.morphia.morphia:*")
+        .commandSplit("mvn -q versions:use-latest-releases versions:update-properties -Dincludes=com.end2endlogic:*")
         .redirectOutput(System.out)
         .destroyOnExit()
         .start()
