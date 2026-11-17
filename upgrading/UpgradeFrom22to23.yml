@@ -21,7 +21,7 @@ recipeList:
       oldFullyQualifiedTypeName: dev.morphia.annotations.experimental.IdField
       newFullyQualifiedTypeName: dev.morphia.annotations.IdField
   - org.openrewrite.maven.ChangeDependencyGroupIdAndArtifactId:
-      oldGroupId: com.end2endlogic
+      oldGroupId: dev.morphia.morphia
       oldArtifactId: morphia-core
       newVersion: 2.3.0
       overrideManagedVersion: false
