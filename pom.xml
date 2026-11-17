@@ -9,7 +9,7 @@
 
     <groupId>com.end2endlogic</groupId>
     <artifactId>morphia</artifactId>
-    <version>3.0.2-SNAPSHOT</version>
+    <version>3.0.2</version>
     <packaging>pom</packaging>
 
     <name>Morphia</name>
