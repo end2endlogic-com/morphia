@@ -7,5 +7,5 @@ nav:
 - "modules/ROOT/nav.adoc"
 asciidoc:
   attributes:
-    version: "3.0.0-SNAPSHOT"
+    version: "3.0.0"
     srcRef: "https://github.com/MorphiaOrg/morphia/blob/master"

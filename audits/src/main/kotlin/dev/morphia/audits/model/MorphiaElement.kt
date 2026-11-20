@@ -59,7 +59,7 @@ enum class Version {
 
     open fun artifactId() = "core"
 
-    fun groupId() = "dev.morphia.morphia"
+    fun groupId() = "com.end2endlogic"
 
     abstract fun version(): String
 

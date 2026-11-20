@@ -3,7 +3,7 @@ plugins {
 }
 
 // Set as appropriate for your organization
-group = "dev.morphia.morphia"
+group = "com.end2endlogic"
 description = "Rewrite recipes."
 
 // The bom version can also be set to a specific version or latest.release.
@@ -16,7 +16,7 @@ dependencies {
     // Need to have a slf4j binding to see any output enabled from the parser.
     runtimeOnly("ch.qos.logback:logback-classic:1.2.+")
 
-    runtimeOnly("dev.morphia.morphia:morphia-core:3.0.0-SNAPSHOT")
+    runtimeOnly("com.end2endlogic:morphia-core:3.0.0")
     testRuntimeOnly("com.google.guava:guava:latest.release")
     testImplementation("org.testng:testng:7.8.0")
 }

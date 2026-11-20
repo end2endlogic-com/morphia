@@ -10,7 +10,7 @@ To import the new
 ----
 <dependencies>
     <dependency>
-        <groupId>dev.morphia.morphia</groupId>
+        <groupId>com.end2endlogic</groupId>
         <artifactId>morphia-kotlin</artifactId>
         <version>{version}</version>
     </dependency>
@@ -22,7 +22,7 @@ And, of course, gradle users can use the following dependency declaration:
 [source,groovy,subs="verbatim,attributes"]
 ----
 dependencies {
-    compile 'dev.morphia.morphia:morphia-kotlin:{version}'
+    compile 'com.end2endlogic:morphia-kotlin:{version}'
 }
 ----
 

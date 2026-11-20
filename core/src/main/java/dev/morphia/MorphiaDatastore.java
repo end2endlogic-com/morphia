@@ -2,11 +2,13 @@ package dev.morphia;
 
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.ServiceLoader;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -116,6 +118,39 @@ public class MorphiaDatastore implements Datastore {
      */
     @MorphiaInternal
     public MorphiaDatastore(MongoClient client, MorphiaConfig config) {
+        this(client, config, mapper -> config.packages().forEach(packageName -> {
+            Sofia.logMappingPackage(packageName);
+            mapper.map(packageName);
+        }));
+    }
+
+    /**
+     * Creates a datastore from entity types that were discovered ahead of time, for example from a build-time class index or
+     * from the mapper of another datastore. The given types are mapped as they are and the classpath is not scanned:
+     * {@link MorphiaConfig#packages()} is left untouched and is not used for discovery. Caps, indexes and document validations
+     * are still applied as the config says.
+     *
+     * @param client      the mongo client
+     * @param config      the config
+     * @param entityTypes the entity types to map; every type must carry a Morphia mapping annotation
+     * @throws MappingException if a given type is not mappable
+     * @hidden
+     * @morphia.internal
+     * @since 3.0.2
+     */
+    @MorphiaInternal
+    public MorphiaDatastore(MongoClient client, MorphiaConfig config, Collection<? extends Class<?>> entityTypes) {
+        this(client, config, mapper -> {
+            for (Class<?> type : entityTypes) {
+                if (!mapper.isMappable(type)) {
+                    throw new MappingException(Sofia.mappingAnnotationNeeded(type.getName()));
+                }
+                mapper.mapEntity(type);
+            }
+        });
+    }
+
+    private MorphiaDatastore(MongoClient client, MorphiaConfig config, Consumer<Mapper> entityDiscovery) {
         this.mongoClient = client;
         this.mapper = new Mapper(config);
         this.queryFactory = mapper.getConfig().queryFactory();
@@ -127,10 +162,7 @@ public class MorphiaDatastore implements Datastore {
         this.database = clientDatabase.withCodecRegistry(this.codecRegistry);
         operations = new CollectionOperations();
 
-        config.packages().forEach(packageName -> {
-            Sofia.logMappingPackage(packageName);
-            mapper.map(packageName);
-        });
+        entityDiscovery.accept(mapper);
         if (config.applyCaps()) {
             applyCaps();
         }
